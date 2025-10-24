@@ -13,9 +13,6 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: todo-list-app
-  ECS_SERVICE: todo-list-service
-  ECS_CLUSTER: todo-list-cluster
 
 # Definición de los trabajos (Jobs)
 jobs:
@@ -427,7 +424,7 @@ jobs:
           echo "Rolling back Production environment..."
           aws cloudformation deploy \
             --template-file template.yaml \
-            --stack-name todo-list-prod-stack \
+            --stack-name todolist-prod-stack \
             --parameter-overrides \
               EnvironmentName=production \
               DockerImageUri=$STABLE_IMAGE_URI \
@@ -446,7 +443,7 @@ jobs:
           echo "Rolling back Staging environment..."
           aws cloudformation deploy \
             --template-file template.yaml \
-            --stack-name todo-list-staging-stack \
+            --stack-name todolist-staging-stack \
             --parameter-overrides \
               EnvironmentName=staging \
               DockerImageUri=$STABLE_IMAGE_URI \
