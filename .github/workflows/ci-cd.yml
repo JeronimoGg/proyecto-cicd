@@ -11,6 +11,12 @@ on:
       - main # Se ejecuta en pull requests hacia main
   workflow_dispatch: # Permite ejecución manual desde la UI de GitHub Actions
 
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: todo-list-app
+  ECS_SERVICE: todo-list-service
+  ECS_CLUSTER: todo-list-cluster
+
 # Definición de los trabajos (Jobs)
 jobs:
   # -------------------------------------
@@ -390,3 +396,98 @@ jobs:
           echo "Running smoke tests against: $APP_BASE_URL"
           sleep 30 # Espera prudencial
           pytest tests/test_smoke_app.py # Ejecutar las pruebas de humo
+  
+  # -------------------------------------
+  # Job de Rollback si fallan las pruebas de humo
+  # -------------------------------------
+  rollback-on-failure:
+    needs: [smoke-test-prod, build-test-publish]
+    runs-on: ubuntu-latest
+    if: always() && needs.smoke-test-prod.result == 'failure'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Rollback Staging and Production
+        run: |
+          # Imagen estable previamente publicada con el tag "stable"
+          STABLE_IMAGE_URI="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.ECR_REPOSITORY }}:stable"
+          echo "::warning:: Starting rollback to stable image: $STABLE_IMAGE_URI"
+
+          # --- Rollback Producción ---
+          echo "Rolling back Production environment..."
+          aws cloudformation deploy \
+            --template-file template.yaml \
+            --stack-name todo-list-prod-stack \
+            --parameter-overrides \
+              EnvironmentName=production \
+              DockerImageUri=$STABLE_IMAGE_URI \
+              LabRoleArn=${{ secrets.LAB_ROLE_ARN }} \
+              VpcId=${{ secrets.VPC_ID }} \
+              SubnetIds="${{ secrets.SUBNET_IDS }}" \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changes
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
+
+          # --- Rollback Staging ---
+          echo "Rolling back Staging environment..."
+          aws cloudformation deploy \
+            --template-file template.yaml \
+            --stack-name todo-list-staging-stack \
+            --parameter-overrides \
+              EnvironmentName=staging \
+              DockerImageUri=$STABLE_IMAGE_URI \
+              LabRoleArn=${{ secrets.LAB_ROLE_ARN }} \
+              VpcId=${{ secrets.VPC_ID }} \
+              SubnetIds="${{ secrets.SUBNET_IDS }}" \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changes
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
+
+          echo "::error::Smoke tests failed! Rollback to 'stable' tag has been completed."
+
+  # -------------------------------------
+  # Job para etiquetar la versión estable si todo fue exitoso
+  # -------------------------------------
+  save-stable-version:
+    needs: [smoke-test-prod, build-test-publish]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag and Push Stable Image
+        run: |
+          IMAGE_TAG="${{ needs.build-test-publish.outputs.image_tag }}"
+          REPO_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.ECR_REPOSITORY }}"
+
+          echo "Pulling newly validated image: $REPO_NAME:$IMAGE_TAG"
+          docker pull "$REPO_NAME:$IMAGE_TAG"
+
+          echo "Tagging image as stable"
+          docker tag "$REPO_NAME:$IMAGE_TAG" "$REPO_NAME:stable"
+
+          echo "Pushing stable tag to Docker Hub"
+          docker push "$REPO_NAME:stable"
