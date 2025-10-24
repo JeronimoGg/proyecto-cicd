@@ -497,7 +497,7 @@ jobs:
   # -------------------------------------
   notify:
     runs-on: ubuntu-latest
-    needs: [deploy-prod, rollback-on-failure]  # Ajusta según tus jobs
+    needs: [save-stable-version, rollback-on-failure]  # Ajusta según tus jobs
     if: always()  # Se ejecuta sin importar si falló o no algo
 
     steps:
