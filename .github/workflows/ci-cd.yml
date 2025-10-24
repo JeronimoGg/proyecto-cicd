@@ -491,3 +491,56 @@ jobs:
 
           echo "Pushing stable tag to Docker Hub"
           docker push "$REPO_NAME:stable"
+
+  # -------------------------------------
+  # Job para enviar notificaciones a Discord
+  # -------------------------------------
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-prod, rollback-on-failure]  # Ajusta según tus jobs
+    if: always()  # Se ejecuta sin importar si falló o no algo
+
+    steps:
+      - name: Send Discord Notification
+        run: |
+          if [ "${{ needs.deploy-prod.result }}" == "success" ]; then
+            STATUS="✅ Despliegue exitoso en *${{ github.ref_name }}*"
+          elif [ "${{ needs.rollback-on-failure.result }}" == "success" ]; then
+            STATUS="⚠️ Smoke test falló, rollback completado en *${{ github.ref_name }}*"
+          else
+            STATUS="🚨 Falló el pipeline en *${{ github.ref_name }}*"
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"content\": \"$STATUS\nRepositorio: **${{ github.repository }}**\nWorkflow: **${{ github.workflow }}**\"}" \
+               ${{ secrets.DISCORD_WEBHOOK }}
+
+  # -------------------------------------
+  # Job para ejecutar pruebas de rendimiento
+  # -------------------------------------
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: [build-test-publish]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-benchmark
+
+      - name: Run performance tests
+        run: pytest --benchmark-only --benchmark-json=benchmark_results.json
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: benchmark_results.json
