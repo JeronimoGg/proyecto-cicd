@@ -420,7 +420,7 @@ jobs:
       - name: Rollback Staging and Production
         run: |
           # Imagen estable previamente publicada con el tag "stable"
-          STABLE_IMAGE_URI="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.ECR_REPOSITORY }}:stable"
+          STABLE_IMAGE_URI="${{ secrets.DOCKERHUB_USERNAME }}/${{ needs.build-test-publish.outputs.repo_name }}:stable"
           echo "::warning:: Starting rollback to stable image: $STABLE_IMAGE_URI"
 
           # --- Rollback Producción ---

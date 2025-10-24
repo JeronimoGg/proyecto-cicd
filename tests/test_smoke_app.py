@@ -28,7 +28,7 @@ def test_smoke_todo_app(browser):
         # Verificar que el encabezado principal es correcto
         h1 = browser.find_element(By.TAG_NAME, "h1")
         print(f"Texto del H1: {h1.text}")
-        assert "📝 To-Do Lista" in h1.text
+        assert "📝 To-Do List" in h1.text
 
         # Verificar el campo de texto para agregar tareas
         input_tarea = browser.find_element(By.NAME, "tarea")
