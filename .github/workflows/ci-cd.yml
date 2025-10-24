@@ -481,7 +481,7 @@ jobs:
       - name: Tag and Push Stable Image
         run: |
           IMAGE_TAG="${{ needs.build-test-publish.outputs.image_tag }}"
-          REPO_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.ECR_REPOSITORY }}"
+          REPO_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{ needs.build-test-publish.outputs.repo_name }}"
 
           echo "Pulling newly validated image: $REPO_NAME:$IMAGE_TAG"
           docker pull "$REPO_NAME:$IMAGE_TAG"
