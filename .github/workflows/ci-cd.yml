@@ -13,6 +13,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  ECS_SERVICE: todo-list-service
+  ECS_CLUSTER: todo-list-cluster
+
 
 # Definición de los trabajos (Jobs)
 jobs:
