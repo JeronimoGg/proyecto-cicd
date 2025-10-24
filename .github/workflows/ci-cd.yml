@@ -497,13 +497,13 @@ jobs:
   # -------------------------------------
   notify:
     runs-on: ubuntu-latest
-    needs: [save-stable-version, rollback-on-failure]  # Ajusta según tus jobs
-    if: always()  # Se ejecuta sin importar si falló o no algo
+    needs: [save-stable-version, rollback-on-failure]
+    if: always()
 
     steps:
       - name: Send Discord Notification
         run: |
-          if [ "${{ needs.deploy-prod.result }}" == "success" ]; then
+          if [ "${{ needs.save-stable-version.result }}" == "success" ]; then
             STATUS="✅ Despliegue exitoso en *${{ github.ref_name }}*"
           elif [ "${{ needs.rollback-on-failure.result }}" == "success" ]; then
             STATUS="⚠️ Smoke test falló, rollback completado en *${{ github.ref_name }}*"
