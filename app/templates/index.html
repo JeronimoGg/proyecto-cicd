@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 40px;
+        }
+
+        form {
+            margin: 20px auto;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 10px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            width: 400px;
+            margin: 20px auto;
+        }
+
+        li {
+            background: #fff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 18px;
+            transition: transform 0.1s;
+        }
+
+        li:hover {
+            transform: scale(1.02);
+        }
+
+        .delete-btn {
+            color: #dc3545;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 20px;
+            transition: color 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #a71d2a;
+        }
+
+        .flash {
+            width: 420px;
+            margin: 15px auto;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #e2e3e5;
+            color: #333;
+            font-size: 16px;
+        }
+
+        p.no-tasks {
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📝 To-Do List</h1>
+
+    <!-- Mensajes flash -->
+    {% with mensajes = get_flashed_messages() %}
+      {% if mensajes %}
+        <div id="flashes" class="flash">
+          {% for mensaje in mensajes %}
+            <p>{{ mensaje }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Formulario para agregar tarea -->
+    <form method="post">
+        <input type="text" name="tarea" placeholder="Escribe una nueva tarea...">
+        <button type="submit">Agregar</button>
+    </form>
+
+    <!-- Lista de tareas -->
+    <ul>
+        {% for tarea in tareas %}
+            <li>
+                {{ tarea.descripcion }}
+                <a class="delete-btn" href="{{ url_for('eliminar', indice=tarea.id) }}">❌</a>
+            </li>
+        {% else %}
+            <p class="no-tasks">No hay tareas pendientes ✅</p>
+        {% endfor %}
+    </ul>
+</body>
+</html>
