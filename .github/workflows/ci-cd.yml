@@ -13,8 +13,10 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECS_SERVICE: todolist-service
-  ECS_CLUSTER: todolist-cluster
+  ECS_PSERVICE: todolist-production-service
+  ECS_PCLUSTER: todolist-production-cluster
+  ECS_SSERVICE: todolist-staging-service
+  ECS_SCLUSTER: todolist-staging-cluster
 
 
 # Definición de los trabajos (Jobs)
@@ -438,8 +440,8 @@ jobs:
             --no-fail-on-empty-changes
 
           aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
+            --cluster ${{ env.ECS_PCLUSTER }} \
+            --service ${{ env.ECS_PSERVICE }} \
             --force-new-deployment
 
           # --- Rollback Staging ---
@@ -457,8 +459,8 @@ jobs:
             --no-fail-on-empty-changes
 
           aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
+            --cluster ${{ env.ECS_SCLUSTER }} \
+            --service ${{ env.ECS_SSERVICE }} \
             --force-new-deployment
 
           echo "::error::Smoke tests failed! Rollback to 'stable' tag has been completed."
